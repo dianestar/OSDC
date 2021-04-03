@@ -18,7 +18,7 @@ void *ThreadFunc(void *n) {
 }
 
 int main(void) {
-	pthread_t threadID[20]; //declare threads by ARGUMENT_NUMBER
+	pthread_t threadID[20]; //declare pthread_t structures by ARGUMENT_NUMBER
 	long long argument[ARGUMENT_NUMBER];
 	long long i;
 	for (i=0;i<ARGUMENT_NUMBER;i++) {
