@@ -18,20 +18,36 @@ void lock(int self) {
 		flag0.store(1); //signal that thread0 wants to enter critical section
 		turn.store(1); //let thread1 to use critical section first
 		while (flag1.load() && turn.load()==1); //if thread1 is using, wait!
+	/* to decrease the number of mfence, maybe we can use the code below in this block, instead!
+		flag0.store(1);
+		turn.store(1, memory_order_release);
+		while (flag1.load(memory_order_acquire) && turn.load(memory_order_acquire));
+	*/
 	}
 	else { //for thread 1
 		flag1.store(1); //signal that thread1 wants to enter critical section
 		turn.store(0); //let thread0 to use critical section first
 		while (flag0.load() && turn.load()==0); //if thread0 is using, wait!
+	/* to decrease the number of mfence, maybe we can use the code below in this block, instead!
+		flag1.store(1);
+		turn.store(0, memory_order_release);
+		while (flag0.load(memory_order_acquire) && turn.load(memory_order_acquire));
+	*/
 	}
 }
 
 void unlock(int self) {
 	if (self==0) { //for thread 0
 		flag0.store(0); //thread0 escapes critical section and returns lock
+	/* to decrease the number of mfence, maybe we can use the code below in this block, instead!
+		flag0.store(0, memory_order_release);
+	*/
 	}
 	else { //for thread 1
 		flag1.store(0); //thread1 escapes critical section and returns lock
+	/* to decrease the number of mfence, maybe we can use the code blow in this block, instead!
+		flag1.store(0, memory_order_release);
+	*/
 	}
 }
 
