@@ -21,7 +21,7 @@ static void dequeue_task_mysched(struct rq *rq, struct task_struct *p, int flags
 	printk("***[MYSCHED] dequeue: start\n");
 	list_del(&p->mysched.run_list);
 	rq->mysched.nr_running--;
-	printk("***[MYSCHED] dequeue: the dequeued task is curr, set TIF_NEED_RESCHED flag cpu=%d,p->state=%ld,p->pid=%d,curr->pid=%d\n", p->on_cpu, p->state, p->pid, p->pid);
+	printk("***[MYSCHED] dequeue: the dequeued task is curr, set TIF_NEED_RESCHED flag cpu=%d,p->state=%ld,p->pid=%d,curr->pid=%d\n", p->on_cpu, p->state, p->pid, rq->curr->pid);
 	printk("***[MYSCHED] dequeue: end\n");
 }
 
