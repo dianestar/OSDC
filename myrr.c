@@ -12,7 +12,7 @@ static void check_preempt_curr_myrr(struct rq *rq, struct task_struct *p,int fla
 struct task_struct *pick_next_task_myrr(struct rq *rq, struct task_struct *prev);
 static void prio_changed_myrr(struct rq *rq, struct task_struct *p, int oldprio);
 
-﻿
+
 
 const struct sched_class myrr_sched_class={
 	.next=&fair_sched_class,
@@ -39,30 +39,33 @@ void init_myrr_rq (struct myrr_rq *myrr_rq)
 	INIT_LIST_HEAD(&myrr_rq->queue);
 
 }
-static void update_curr_myrr(struct rq *rq){
+static void update_curr_myrr(struct rq *rq) {
+	struct task_struct *curr=rq->curr;
+	struct sched_myrr_entity *myrr_se=&curr->myrr;
 	
-	/*
+	myrr_se->update_num++;
 
-	현재 실행중인 태스크가 Time Slice(update num)를 모두 소진했다면
-	1. 서브 런큐에서의 순서 정렬(현재 실행되고 있는것을 맨 뒤로)
-	2. update num 초기화
-	3. ﻿rescheduling 요청
-	*/
+	printk(KERN_INFO "***[MYRR] update_curr_myrr\tpid=%d update_num=%u\n", curr->pid, myrr_se->update_num);
 
+	if (myrr_se->update_num > 4) {
+		list_move_tail(&myrr_se->run_list, &rq->myrr.queue);
+		myrr_se->update_num=0;
+		resched_curr(rq);
+	}
 }
 
 static void enqueue_task_myrr(struct rq *rq, struct task_struct *p, int flags) {
+	list_add_tail(&p->myrr.run_list, &rq->myrr.queue);
+	rq->myrr.nr_running++;
 
-	/*﻿
-	1. 서브 런큐에 삽입
-	*/﻿
-	﻿
+	printk(KERN_INFO "***[MYRR] enqueue: success cpu=%d, nr_running=%u, pid=%d\n", p->on_cpu, rq->myrr.nr_running, p->pid);
 }
 static void dequeue_task_myrr(struct rq *rq, struct task_struct *p, int flags) 
-{﻿	
-	/*﻿
-	1. 서브 런큐 dequeue 동작
-	*/	﻿	﻿
+{
+	list_del(&p->myrr.run_list);
+	rq->myrr.nr_running--;
+
+	printk(KERN_INFO "\t***[MYRR] dequeue: success cpu=%d, nr_running=%u, pid=%d\n", p->on_cpu, rq->myrr.nr_running, p->pid);
 }
 void check_preempt_curr_myrr(struct rq *rq, struct task_struct *p, int flags) {
 	printk("***[MYRR] check_preempt_curr_myrr\n");
@@ -72,12 +75,20 @@ struct task_struct *pick_next_task_myrr(struct rq *rq, struct task_struct *prev)
 	if(rq->myrr.nr_running==0 ){
 		return NULL;
 	}
-	
-	/*﻿
-	1. next task를 서브 런큐에서 pick
-	2. next task를 return 
-	*/
+	else {
+		struct list_head *q;
+		struct sched_myrr_entity *next_entity;
+		struct task_struct *next_struct;
 
+		put_prev_task(rq, prev);
+		q=&rq->myrr.queue;
+		next_entity=container_of(q->next, struct sched_myrr_entity, run_list);
+		next_struct=container_of(next_entity, struct task_struct, myrr);
+
+		printk(KERN_INFO "\t***[MYRR] pick_next_task: cpu=%d, prev->pid=%d, next_p->pid=%d, nr_running=%d", prev->on_cpu, prev->pid, next_struct->pid, rq->myrr.nr_running);
+
+		return next_struct;
+	}
 }
 void put_prev_task_myrr(struct rq *rq, struct task_struct *p) {
 	printk(KERN_INFO "\t***[MYRR] put_prev_task: do_nothing, p->pid=%d\n",p->pid);
