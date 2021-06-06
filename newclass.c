@@ -1,3 +1,4 @@
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +7,6 @@
 #include <sched.h>
 
 #define SCHED_MYSCHED	7
-#define SCHED_MYRR	8
 #define NR_TASKS 	4
 
 #ifdef __x86_64__
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 	}
 
 	if (argc != 2) {
-		printf("***[NEWCLASS] Need argument: qos_fork {f | n | r}\n");
+		printf("***[NEWCLASS] Need argument: qos_fork {f | n}\n");
 		exit(1);
 	}
 	
@@ -82,33 +82,24 @@ int main(int argc, char** argv)
 		} else if (pids == 0) {
 			my_pid = getpid();
 			my_id = i;
-				
+			
+			CPU_ZERO(&mask);
+			CPU_SET(1, &mask);
+
+			if(sched_setaffinity(my_pid, sizeof(mask), &mask) )
+			{
+				fprintf(stderr, "cpuset failed\n");
+				exit(EXIT_FAILURE);
+			}else{
+				printf("cpuset at [1st] cpu in child process(pid=%d) is succeed\n", my_pid);
+			}
+			
+			sleep(1);
 			if (c == 'n') {
 				printf("***[NEWCLASS] Select mysched scheduling class \n");
 				/* set attributes for SCHED_DEADLINE */
 				attr.size = sizeof(attr);
 				attr.sched_policy = SCHED_MYSCHED;			
-				attr.sched_flags = 0;
-
-				attr.sched_period = 0;
-				attr.sched_runtime = 0;
-				attr.sched_deadline = 0;
-
-				attr.sched_nice = 0;		// for SCHED_NORMAL and SCHED_BATCH
-				attr.sched_priority = 0;	// for SCHED_FIFO and SCHED_RR
-				
-				ret = sched_setattr(my_pid, &attr, flags);
-				if (ret != 0) {
-					perror("sched_setattr");
-					exit(1);
-				}
-			}
-			else if(c == 'r')
-			{
-				printf("***[NEWCLASS] Select myrr scheduling class \n");
-				/* set attributes for SCHED_DEADLINE */
-				attr.size = sizeof(attr);
-				attr.sched_policy = SCHED_MYRR;			
 				attr.sched_flags = 0;
 
 				attr.sched_period = 0;
@@ -130,38 +121,24 @@ int main(int argc, char** argv)
 				printf("***[NEWCLASS] Select undefined class \n");
 				exit(1);
 			}
-			CPU_ZERO(&mask);
-			CPU_SET(1, &mask);
-
-			if(sched_setaffinity(my_pid, sizeof(mask), &mask) )
-			{
-				fprintf(stderr, "cpuset failed\n");
-				exit(EXIT_FAILURE);
-			}else{
-				printf("cpuset at [1st] cpu in child process(pid=%d) is succeed\n", my_pid);
-			}
-			sleep(1);
 				
 			/* child process work */					
-			int j=0;
-			for(j=0; j<10; j++) {
+			while(1) {
 				
 				int i=0;
 				int result = 0;
-				for(i=0; i<200000000; i++)
+				for(i=0; i<10000; i++)
 				{
 					result+=1;
 				}
-				printf("pid=%d:\tresult=%d\n", my_pid, result);
+				
+				//printf("pid=%d:\tresult=%d\n", my_pid, result);
 				sleep(1);
 			}
-			exit(1);
 		}
 		printf("Child's PID = %d\n", pids);
-		//usleep(100000);
 	}
-	
-	printf("forking %d tasks is completed\n", nr_proc);
 
 	return 0;
 }
+
